@@ -12,7 +12,7 @@
   "clangd.arguments": [
     "--background-index",
     "--query-driver=**",
-    "--compile-commands-dir=c:\\Users\\ervin\\Repos\\Personal\\temp_cube_v2\\sample_project\\build"
+    "--compile-commands-dir=c:\\Users\\ervin\\Repos\\Personal\\temp_cube_v2\\build"
   ],
   "idf.portWin": "COM5",
   "idf.flashType": "UART"
