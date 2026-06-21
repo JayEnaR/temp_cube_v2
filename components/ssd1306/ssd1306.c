@@ -1087,10 +1087,17 @@ esp_err_t ssd1306_display_textbox_ticker(ssd1306_handle_t handle, uint8_t page, 
 }
 
 esp_err_t ssd1306_clear_display_page(ssd1306_handle_t handle, uint8_t page, bool invert) {
-	/* validate parameters */
-	ESP_ARG_CHECK( handle );
+	ssd1306_device_t* dev = (ssd1306_device_t*)handle;
 
-	ESP_RETURN_ON_ERROR(ssd1306_display_text(handle, page, "                ", invert), TAG, "display text for clear line failed");
+	/* validate parameters */
+	ESP_ARG_CHECK( dev );
+
+	uint8_t num_chars = dev->width / 8;
+	char spaces[SSD1306_TEXT_DISPLAY_MAX_LEN + 1];
+	memset(spaces, ' ', num_chars);
+	spaces[num_chars] = '\0';
+
+	ESP_RETURN_ON_ERROR(ssd1306_display_text(handle, page, spaces, invert), TAG, "display text for clear line failed");
 
 	return ESP_OK;
 }

@@ -118,7 +118,7 @@ extern "C" {
     .i2c_address        = I2C_SSD1306_DEV_ADDR,                         \
     .i2c_clock_speed    = I2C_SSD1306_DEV_CLK_SPD,                      \
     .panel_size         = SSD1306_PANEL_64x32,                          \
-    .offset_x           = 0,                                           \
+    .offset_x           = 32,                                           \
     .flip_enabled       = false }
 
 /*

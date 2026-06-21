@@ -39,6 +39,5 @@ void app_main(void)
     ssd1306_clear_display(dev_hdl, false);
 
     // 64x32 display: 8 chars max per line (8px/char), 4 pages (rows of 8px)
-    ssd1306_display_text(dev_hdl, 0, "Hey", false);
-    // ssd1306_display_text(dev_hdl, 2, "Hi", false);
+    ssd1306_display_text(dev_hdl, 0, "Hello", false);
 }
