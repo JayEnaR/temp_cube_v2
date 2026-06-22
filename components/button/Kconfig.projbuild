@@ -1,0 +1,18 @@
+menu "Button Configuration"
+
+    config BUTTON_GPIO
+        int "Button GPIO number"
+        range 0 48
+        default 0
+        help
+            GPIO pin connected to the device button.
+
+    config BUTTON_LONG_PRESS_SEC
+        int "Long press duration (seconds)"
+        range 1 10
+        default 3
+        help
+            Number of seconds the button must be held to erase NVS and restart
+            provisioning.
+
+endmenu

@@ -5,6 +5,7 @@
 #include <freertos/task.h>
 #include <driver/i2c_master.h>
 #include <esp_sleep.h>
+#include <button.h>
 #include <ssd1306.h>
 #include <temp_cube_bme280.h>
 #include <wifi-manager.h>
@@ -27,6 +28,8 @@ static void display_padded_line(ssd1306_handle_t display, uint8_t page, const ch
 
 void app_main(void)
 {
+    button_init();
+
     wifi_manager_init();
 
     char ssid[33] = {0};
@@ -103,6 +106,7 @@ void app_main(void)
     wifi_manager_disconnect();
 
     ESP_LOGI(APP_TAG, "Entering deep sleep for 60 seconds");
+    button_enable_wakeup_source();
     ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(DEEP_SLEEP_TIME_US));
     esp_deep_sleep_start();
 }
