@@ -2,6 +2,8 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
+#include "esp_err.h"
 #include "esp_event.h"
 #include "esp_wifi.h"
 
@@ -12,6 +14,9 @@ typedef enum {
 } wifi_manager_event_t;
 
 void wifi_manager_init(void);
+void wifi_manager_start_provisioning(void);
+esp_err_t wifi_manager_connect_sta(uint32_t timeout_ms);
+void wifi_manager_disconnect(void);
 
 wifi_mode_t get_wifi_mode(void);
 void set_wifi_mode(wifi_mode_t mode);
