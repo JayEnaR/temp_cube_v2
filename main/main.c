@@ -6,6 +6,7 @@
 #include <driver/i2c_master.h>
 #include <ssd1306.h>
 #include <temp_cube_bme280.h>
+#include <wifi-manager.h>
 
 #define APP_TAG         "app_main"
 
@@ -22,6 +23,8 @@ static void display_padded_line(ssd1306_handle_t display, uint8_t page, const ch
 
 void app_main(void)
 {
+    wifi_manager_init();
+
     // initialize i2c master bus
     i2c_master_bus_config_t i2c_bus_cfg = {
         .clk_source             = I2C_CLK_SRC_DEFAULT,

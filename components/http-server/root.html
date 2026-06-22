@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WiFi Setup</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        font-family: Arial, sans-serif;
+        background: #f0f2f5;
+      }
+      .card {
+        width: 320px;
+        padding: 28px 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        background: #f7f7f7;
+      }
+      h2 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #333;
+        font-size: 20px;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        color: #555;
+        margin-bottom: 4px;
+        margin-top: 14px;
+      }
+      input[type="text"],
+      input[type="password"] {
+        width: 100%;
+        padding: 9px 12px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 14px;
+        outline: none;
+        transition: border 0.2s;
+      }
+      input:focus { border-color: #0a84ff; }
+      .networks {
+        margin-top: 14px;
+        max-height: 180px;
+        overflow-y: auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+      }
+      .network-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 14px;
+        border-bottom: 1px solid #f0f0f0;
+        color: #0a84ff;
+      }
+      .network-item:last-child { border-bottom: none; }
+      .network-item:hover { background: #f5f8ff; }
+      .networks-label {
+        font-size: 13px;
+        color: #555;
+        margin-top: 14px;
+        margin-bottom: 4px;
+      }
+      button {
+        display: block;
+        width: 100%;
+        margin-top: 20px;
+        padding: 11px;
+        background: #0a84ff;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        font-size: 15px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      button:hover { background: #0070e0; }
+      #status {
+        margin-top: 12px;
+        text-align: center;
+        font-size: 13px;
+        min-height: 18px;
+        color: #555;
+      }
+      #status.ok { color: #28a745; }
+      #status.err { color: #dc3545; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>WiFi Setup</h2>
+      <div class="networks-label">Available Networks</div>
+      <div class="networks" id="network-list">
+        <div class="network-item" style="color:#999;cursor:default;">Scanning...</div>
+      </div>
+
+      <label for="ssid">SSID</label>
+      <input type="text" id="ssid" placeholder="Network name" />
+
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Password" />
+
+      <button onclick="connect()">Connect</button>
+      <div id="status"></div>
+    </div>
+
+    <script>
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      function loadNetworks() {
+        const list = document.getElementById("network-list");
+        list.onclick = (e) => {
+          const item = e.target.closest(".network-item[data-ssid]");
+          if (item) document.getElementById("ssid").value = item.dataset.ssid;
+        };
+
+        fetch("/ssid")
+          .then(r => r.json())
+          .then(data => {
+            if (!data.ssids || data.ssids.length === 0) {
+              list.innerHTML = '<div class="network-item" style="color:#999;cursor:default;">No networks found</div>';
+              return;
+            }
+            list.innerHTML = data.ssids.map(s =>
+              `<div class="network-item" data-ssid="${escapeHtml(s)}">${escapeHtml(s)}</div>`
+            ).join("");
+          })
+          .catch(() => {
+            document.getElementById("network-list").innerHTML =
+              '<div class="network-item" style="color:#999;cursor:default;">Scan unavailable</div>';
+          });
+      }
+
+      function connect() {
+        const ssid = document.getElementById("ssid").value.trim();
+        const password = document.getElementById("password").value;
+        const status = document.getElementById("status");
+
+        if (!ssid) {
+          status.className = "err";
+          status.textContent = "SSID is required.";
+          return;
+        }
+
+        status.className = "";
+        status.textContent = "Connecting...";
+
+        fetch("/ctrl", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ssid, password }),
+        })
+          .then(r => r.text())
+          .then(() => {
+            status.className = "ok";
+            status.textContent = "Credentials saved. Device restarting...";
+          })
+          .catch(() => {
+            status.className = "err";
+            status.textContent = "Failed to send credentials.";
+          });
+      }
+
+      window.onload = loadNetworks;
+    </script>
+  </body>
+</html>

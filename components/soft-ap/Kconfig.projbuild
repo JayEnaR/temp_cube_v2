@@ -1,0 +1,29 @@
+menu "Soft-AP Configuration"
+
+    config SOFT_AP_SSID
+        string "AP SSID"
+        default "Temp Cube Setup"
+        help
+            SSID broadcast by the ESP32 in AP mode during provisioning.
+
+    config SOFT_AP_PASSWORD
+        string "AP Password"
+        default "developer"
+        help
+            Password for the provisioning AP. Leave empty for an open network.
+
+    config SOFT_AP_CHANNEL
+        int "AP Wi-Fi Channel"
+        range 1 13
+        default 1
+        help
+            Wi-Fi channel used for the provisioning AP.
+
+    config SOFT_AP_MAX_STA_CONN
+        int "Maximum simultaneous station connections"
+        range 1 10
+        default 4
+        help
+            Maximum number of stations that can connect to the provisioning AP.
+
+endmenu
