@@ -1,0 +1,39 @@
+menu "OTA Manager Configuration"
+
+config TEMP_CUBE_OTA_URL_MAX_LEN
+    int "Maximum OTA firmware URL length"
+    range 64 1024
+    default 256
+    help
+        Maximum length of a firmware URL received from an OTA trigger.
+
+config TEMP_CUBE_OTA_HTTP_TIMEOUT_MS
+    int "OTA HTTP request timeout, in ms"
+    default 30000
+    help
+        Timeout used by the HTTP client while downloading OTA firmware.
+
+config TEMP_CUBE_OTA_ALLOW_HTTP
+    bool "Allow plain HTTP OTA URLs"
+    default y
+    help
+        Allow OTA downloads from http:// URLs. Disable this for production and
+        use HTTPS firmware hosting.
+
+config TEMP_CUBE_OTA_USE_CERT_BUNDLE
+    bool "Use ESP x509 certificate bundle for HTTPS OTA"
+    depends on MBEDTLS_CERTIFICATE_BUNDLE
+    default y
+    help
+        Attach ESP-IDF's built-in certificate bundle when downloading firmware
+        from HTTPS URLs.
+
+config TEMP_CUBE_OTA_SKIP_LAST_SUCCESSFUL_URL
+    bool "Skip retained OTA URL after a successful update"
+    default y
+    help
+        Store the last successfully applied OTA URL in NVS and skip it on later
+        boots. This prevents a retained MQTT OTA trigger from reflashing the
+        same firmware every wake cycle.
+
+endmenu

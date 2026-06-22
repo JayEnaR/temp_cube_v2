@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -11,12 +12,45 @@
 static const char *TAG = "mqtt-manager";
 
 #define MQTT_CONNECTED_BIT BIT0
+#define MQTT_OTA_UPDATE_BIT BIT1
 
 ESP_EVENT_DEFINE_BASE(MQTT_MANAGER_EVENT);
 
 static esp_mqtt_client_handle_t s_client = NULL;
 static EventGroupHandle_t s_mqtt_event_group = NULL;
 static bool s_connected = false;
+static char s_ota_url[CONFIG_TEMP_CUBE_OTA_URL_MAX_LEN];
+
+static bool mqtt_topic_matches(const esp_mqtt_event_handle_t event, const char *topic)
+{
+    size_t topic_len = strlen(topic);
+    return event->topic_len == (int)topic_len && strncmp(event->topic, topic, topic_len) == 0;
+}
+
+static void mqtt_handle_ota_data(const esp_mqtt_event_handle_t event)
+{
+    if (!mqtt_topic_matches(event, CONFIG_MQTT_OTA_TOPIC)) {
+        return;
+    }
+
+    if (event->current_data_offset != 0 || event->data_len != event->total_data_len) {
+        ESP_LOGW(TAG, "Ignoring fragmented OTA trigger payload");
+        return;
+    }
+
+    if (event->total_data_len <= 0 || event->total_data_len >= (int)sizeof(s_ota_url)) {
+        ESP_LOGW(TAG, "Ignoring invalid OTA trigger URL length: %d", event->total_data_len);
+        return;
+    }
+
+    memcpy(s_ota_url, event->data, event->total_data_len);
+    s_ota_url[event->total_data_len] = '\0';
+    ESP_LOGI(TAG, "OTA trigger received: %s", s_ota_url);
+
+    if (s_mqtt_event_group != NULL) {
+        xEventGroupSetBits(s_mqtt_event_group, MQTT_OTA_UPDATE_BIT);
+    }
+}
 
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
@@ -31,6 +65,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "Connected to broker");
         s_connected = true;
         xEventGroupSetBits(s_mqtt_event_group, MQTT_CONNECTED_BIT);
+        esp_mqtt_client_subscribe(event->client, CONFIG_MQTT_OTA_TOPIC, CONFIG_MQTT_QOS);
+        ESP_LOGI(TAG, "Subscribed to OTA topic: %s", CONFIG_MQTT_OTA_TOPIC);
         esp_event_post(MQTT_MANAGER_EVENT, MQTT_MANAGER_EVENT_CONNECTED, NULL, 0, portMAX_DELAY);
         break;
 
@@ -47,6 +83,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
     case MQTT_EVENT_ERROR:
         ESP_LOGE(TAG, "MQTT error occurred");
+        break;
+
+    case MQTT_EVENT_DATA:
+        mqtt_handle_ota_data(event);
         break;
 
     default:
@@ -69,6 +109,7 @@ void mqtt_manager_init(void)
         }
     }
     xEventGroupClearBits(s_mqtt_event_group, MQTT_CONNECTED_BIT);
+    xEventGroupClearBits(s_mqtt_event_group, MQTT_OTA_UPDATE_BIT);
 
     const esp_mqtt_client_config_t mqtt_cfg = {
         .broker = {
@@ -170,5 +211,28 @@ esp_err_t mqtt_manager_publish_reading(const temp_cube_bme280_reading_t *reading
 
     ESP_LOGI(TAG, "Published reading to [%s] (msg_id=%d): %s",
              CONFIG_MQTT_READINGS_TOPIC, msg_id, payload);
+    return ESP_OK;
+}
+
+esp_err_t mqtt_manager_wait_for_ota_update(char *url, size_t url_len,
+                                           uint32_t timeout_ms)
+{
+    if (url == NULL || url_len == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (s_client == NULL || s_mqtt_event_group == NULL) {
+        ESP_LOGW(TAG, "OTA wait skipped, MQTT client is not initialized");
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    EventBits_t bits = xEventGroupWaitBits(s_mqtt_event_group, MQTT_OTA_UPDATE_BIT,
+                                           pdTRUE, pdFALSE,
+                                           pdMS_TO_TICKS(timeout_ms));
+    if ((bits & MQTT_OTA_UPDATE_BIT) == 0) {
+        return ESP_ERR_TIMEOUT;
+    }
+
+    snprintf(url, url_len, "%s", s_ota_url);
     return ESP_OK;
 }

@@ -12,6 +12,13 @@ config MQTT_READINGS_TOPIC
     help
         Topic used to publish temperature, humidity, pressure, and altitude readings.
 
+config MQTT_OTA_TOPIC
+    string "OTA trigger subscription topic"
+    default "temp-cube/ota"
+    help
+        Topic used to receive OTA trigger messages. The payload must be the
+        firmware URL to download.
+
 config MQTT_QOS
     int "MQTT publish QoS"
     range 0 2
@@ -30,5 +37,12 @@ config MQTT_CONNECT_TIMEOUT_MS
     default 5000
     help
         Maximum time to wait for the MQTT broker connection before skipping a publish.
+
+config MQTT_OTA_TRIGGER_WAIT_MS
+    int "MQTT OTA trigger listen window, in ms"
+    default 5000
+    help
+        Maximum time to wait for an OTA trigger after connecting to MQTT. Use
+        retained OTA trigger messages if the device normally wakes briefly.
 
 endmenu

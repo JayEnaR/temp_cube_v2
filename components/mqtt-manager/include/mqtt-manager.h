@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "esp_err.h"
@@ -25,6 +26,14 @@ void mqtt_manager_deinit(void);
  */
 esp_err_t mqtt_manager_publish_reading(const temp_cube_bme280_reading_t *reading,
                                        uint32_t connect_timeout_ms);
+
+/**
+ * Wait for an OTA trigger message on CONFIG_MQTT_OTA_TOPIC.
+ *
+ * The trigger payload must be the firmware URL to download.
+ */
+esp_err_t mqtt_manager_wait_for_ota_update(char *url, size_t url_len,
+                                           uint32_t timeout_ms);
 
 #ifdef __cplusplus
 }
