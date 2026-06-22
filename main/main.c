@@ -6,6 +6,7 @@
 #include <driver/i2c_master.h>
 #include <esp_sleep.h>
 #include <button.h>
+#include <mqtt-manager.h>
 #include <ssd1306.h>
 #include <temp_cube_bme280.h>
 #include <wifi-manager.h>
@@ -44,6 +45,8 @@ void app_main(void)
     esp_err_t wifi_ret = wifi_manager_connect_sta(WIFI_CONNECT_TIMEOUT_MS);
     if (wifi_ret != ESP_OK) {
         ESP_LOGW(APP_TAG, "WiFi connect failed before measurement: %s", esp_err_to_name(wifi_ret));
+    } else {
+        mqtt_manager_init();
     }
 
     // initialize i2c master bus
@@ -93,6 +96,12 @@ void app_main(void)
 
         ESP_LOGI(APP_TAG, "T=%.2f C RH=%.2f %% P=%.2f hPa Alt=%.2f m",
                  reading.temperature_c, reading.humidity_percent, reading.pressure_hpa, reading.altitude_m);
+        if (wifi_ret == ESP_OK) {
+            esp_err_t mqtt_ret = mqtt_manager_publish_reading(&reading, CONFIG_MQTT_CONNECT_TIMEOUT_MS);
+            if (mqtt_ret != ESP_OK) {
+                ESP_LOGW(APP_TAG, "MQTT publish failed: %s", esp_err_to_name(mqtt_ret));
+            }
+        }
     } else {
         ESP_LOGE(APP_TAG, "BME280 read failed: %s", esp_err_to_name(ret));
         display_padded_line(dev_hdl, 0, "BME280");
@@ -103,6 +112,9 @@ void app_main(void)
 
     vTaskDelay(pdMS_TO_TICKS(DISPLAY_ON_TIME_MS));
     ssd1306_clear_display(dev_hdl, false);
+    if (wifi_ret == ESP_OK) {
+        mqtt_manager_deinit();
+    }
     wifi_manager_disconnect();
 
     ESP_LOGI(APP_TAG, "Entering deep sleep for 60 seconds");

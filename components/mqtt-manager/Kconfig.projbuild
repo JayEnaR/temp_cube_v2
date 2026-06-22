@@ -1,0 +1,34 @@
+menu "MQTT Manager Configuration"
+
+config MQTT_BROKER_URI
+    string "MQTT broker URI"
+    default "mqtt://broker.emqx.io"
+    help
+        Full URI of the MQTT broker to connect to.
+
+config MQTT_READINGS_TOPIC
+    string "BME280 readings publish topic"
+    default "temp-cube/readings"
+    help
+        Topic used to publish temperature, humidity, pressure, and altitude readings.
+
+config MQTT_QOS
+    int "MQTT publish QoS"
+    range 0 2
+    default 1
+    help
+        QoS level used when publishing sensor readings.
+
+config MQTT_KEEPALIVE_SEC
+    int "MQTT keepalive interval (seconds)"
+    default 60
+    help
+        Interval in seconds between MQTT keepalive pings.
+
+config MQTT_CONNECT_TIMEOUT_MS
+    int "MQTT connect timeout before publishing, in ms"
+    default 5000
+    help
+        Maximum time to wait for the MQTT broker connection before skipping a publish.
+
+endmenu
