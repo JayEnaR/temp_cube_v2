@@ -1,0 +1,33 @@
+menu "Temp Cube BME280"
+
+config TEMP_CUBE_BME280_PRIMARY_I2C_ADDR
+    hex "Primary BME280 I2C address"
+    default 0x76
+    help
+        First 7-bit I2C address to probe for the BME280.
+
+config TEMP_CUBE_BME280_SECONDARY_I2C_ADDR
+    hex "Secondary BME280 I2C address"
+    default 0x77
+    help
+        Fallback 7-bit I2C address to probe for the BME280.
+
+config TEMP_CUBE_BME280_I2C_CLOCK_HZ
+    int "BME280 I2C clock speed"
+    default 100000
+    help
+        I2C clock speed used for the BME280 device on the shared bus.
+
+config TEMP_CUBE_BME280_SEA_LEVEL_PRESSURE_PA
+    int "Sea level pressure used for altitude, in Pa"
+    default 101325
+    help
+        Sea level pressure used for barometric altitude calculations.
+
+config TEMP_CUBE_BME280_UPDATE_INTERVAL_MS
+    int "Sensor update interval, in ms"
+    default 2000
+    help
+        Delay between sensor display updates.
+
+endmenu
