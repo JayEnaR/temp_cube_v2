@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "driver/gpio.h"
+#include "driver/rtc_io.h"
 #include "esp_log.h"
 #include "esp_sleep.h"
 #include "esp_system.h"
@@ -25,6 +26,12 @@ static bool button_is_pressed(void)
 
 void button_enable_wakeup_source(void)
 {
+    // gpio pull-ups are from the digital domain and are disabled during deep sleep.
+    // For RTC GPIOs (0-21 on ESP32-S3) the RTC peripheral domain must stay on and
+    // the pull must be set through the RTC GPIO API so it remains active in deep sleep.
+    rtc_gpio_pullup_en(BUTTON_GPIO);
+    rtc_gpio_pulldown_dis(BUTTON_GPIO);
+    ESP_ERROR_CHECK(esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON));
     ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(1ULL << BUTTON_GPIO, ESP_EXT1_WAKEUP_ANY_LOW));
 }
 
