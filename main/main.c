@@ -6,6 +6,7 @@
 #include <driver/i2c_master.h>
 #include <esp_sleep.h>
 #include <esp_system.h>
+#include <esp_timer.h>
 #include <button.h>
 #include <mqtt-manager.h>
 #include <ota-manager.h>
@@ -151,17 +152,34 @@ void app_main(void)
         }
     }
 
-    if (bme280_ret == ESP_OK) {
-        display_bme280_reading(dev_hdl, &reading);
-        if (mqtt_started) {
-            esp_err_t mqtt_ret = mqtt_manager_publish_reading(&reading, CONFIG_MQTT_CONNECT_TIMEOUT_MS);
-            if (mqtt_ret != ESP_OK) {
-                ESP_LOGW(APP_TAG, "MQTT publish failed: %s", esp_err_to_name(mqtt_ret));
-            }
+    if (bme280_ret == ESP_OK && mqtt_started) {
+        esp_err_t mqtt_ret = mqtt_manager_publish_reading(&reading, CONFIG_MQTT_CONNECT_TIMEOUT_MS);
+        if (mqtt_ret != ESP_OK) {
+            ESP_LOGW(APP_TAG, "MQTT publish failed: %s", esp_err_to_name(mqtt_ret));
         }
     }
 
-    vTaskDelay(pdMS_TO_TICKS(DISPLAY_ON_TIME_MS));
+    uint32_t update_interval_ms = temp_cube_bme280_update_interval_ms();
+    int64_t deadline_us = esp_timer_get_time() + (int64_t)DISPLAY_ON_TIME_MS * 1000LL;
+    do {
+        esp_err_t ret = temp_cube_bme280_read(bme280, &reading);
+        if (ret == ESP_OK) {
+            display_bme280_reading(dev_hdl, &reading);
+        } else {
+            ESP_LOGW(APP_TAG, "BME280 read failed: %s", esp_err_to_name(ret));
+            display_bme280_error(dev_hdl, ret);
+        }
+
+        int64_t remaining_us = deadline_us - esp_timer_get_time();
+        if (remaining_us <= 0) {
+            break;
+        }
+        int64_t delay_ms = (int64_t)update_interval_ms;
+        if (delay_ms > remaining_us / 1000LL) {
+            delay_ms = remaining_us / 1000LL;
+        }
+        vTaskDelay(pdMS_TO_TICKS(delay_ms));
+    } while (esp_timer_get_time() < deadline_us);
     ssd1306_clear_display(dev_hdl, false);
     if (mqtt_started) {
         mqtt_manager_deinit();
