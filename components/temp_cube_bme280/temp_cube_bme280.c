@@ -139,6 +139,14 @@ esp_err_t temp_cube_bme280_read(temp_cube_bme280_handle_t handle, temp_cube_bme2
 {
     ESP_RETURN_ON_FALSE(handle && reading, ESP_ERR_INVALID_ARG, TAG, "invalid BME280 read arguments");
 
+    uint8_t status = 0;
+    do {
+        ESP_RETURN_ON_ERROR(read_bytes(handle, BME280_REGISTER_STATUS, &status, 1), TAG, "BME280 status read failed");
+        if (status & 0x08) {
+            vTaskDelay(pdMS_TO_TICKS(10));
+        }
+    } while (status & 0x08);
+
     uint8_t data[8];
     ESP_RETURN_ON_ERROR(read_bytes(handle, BME280_REGISTER_PRESSUREDATA, data, sizeof(data)), TAG, "BME280 measurement read failed");
 
